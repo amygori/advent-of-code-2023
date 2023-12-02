@@ -4,7 +4,7 @@ from puzzle import do_the_thing
 
 file = Path("test_input.txt")
 input = Path.read_text(file).splitlines()
-expected_output = 142
+expected_output = 281
 
 
 @pytest.mark.parametrize(
