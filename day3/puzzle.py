@@ -1,53 +1,60 @@
 import sys
 from pathlib import Path
-import string
-import random
+import string, random, re, math
+import functools as ft
+from pprint import pprint
 
 
 def do_the_thing(input):
     grid = create_grid(input)
-    sum = 0
-    for num in grid["numbers"].keys():
-        if any(coord in grid["symbols"] for coord in grid["numbers"][num]):
-            print(f"Found a symbol nearby number {num}!")
-            sum += int(num.split("-")[0])
-        else:
-            print(f"No symbols nearby number {num}!")
-    return sum
+    gear_ratios_sum = 0
+    gear_sets = []
+    for asterisk_position, neighbors in grid["asterisks"].items():
+        gears = set()
+        for coords in neighbors:
+            # look up coords in number_coords
+            # If not None, add to gears
+            if grid["number_coords"].get(coords) is not None:
+                gears.add(int(grid["number_coords"][coords]))
+        if len(gears) == 2:
+            gear_sets.append(gears)
+    for gear_set in gear_sets:
+        if len(gear_set) == 2:
+            gear_ratios_sum += math.prod(gear_set)
+    return gear_ratios_sum
 
 
 def create_grid(input):
-    grid = {"symbols": [], "numbers": {}, "number_coords": {}}
-    neighbors = set()
+    grid = {"asterisks": {}, "number_coords": {}}
     for y in range(len(input)):
         current_number = ""
+        coords = []
+        # record numbers and positions
+        # then when you hit an asterisk, record the location of the asterisk
         for x in range(len(input[y])):
-            if input[y][x] in string.digits:
-                current_number += input[y][x]
-                adjacents = get_neighbors(input, (x, y))
-                for neighbor in adjacents:
-                    neighbors.add(neighbor)
+            neighbors = set()
+            char = input[y][x]
+            if char in string.digits:
+                current_number += char
+                coords.append((x, y))
+                if x == 139 and current_number:
+                    for coord in coords:  
+                        grid["number_coords"][coord] = current_number
+                    current_number = ""
+                    coords = []
             else:
                 if current_number:
-                    grid = record_number(grid, current_number, neighbors)
+                    for coord in coords:
+                        grid["number_coords"][coord] = current_number
                     current_number = ""
-                    neighbors = set()
-                if input[y][x] != ".":
-                    grid["symbols"].append((x, y))
-            if x == len(input[y]) - 1:  # end of line
-                if current_number:
-                    grid = record_number(grid, current_number, neighbors)
-                    neighbors = set()
+                    coords = []
+                if char == "*":
+                    neighbors.update(get_neighbors(input, (x, y)))
+                    grid["asterisks"][(x, y)] = neighbors
     return grid
 
 
-def record_number(grid, number, neighbors):
-    unique_number = number + "-" + "".join(random.choices(string.ascii_letters, k=8))
-    grid["numbers"][unique_number] = neighbors
-    return grid
-
-
-def get_neighbors(input, coords):
+def get_neighbors(grid, coords):
     x, y = coords
     above = (x, y - 1)
     below = (x, y + 1)
@@ -61,7 +68,7 @@ def get_neighbors(input, coords):
         above = None
         above_left = None
         above_right = None
-    elif y == len(input) - 1:  # bottom row
+    elif y == len(grid) - 1:  # bottom row
         below = None
         below_left = None
         below_right = None
@@ -69,7 +76,7 @@ def get_neighbors(input, coords):
         left = None
         above_left = None
         below_left = None
-    elif x == len(input) - 1:  # right column
+    elif x == len(grid) - 1:  # right column
         right = None
         above_right = None
         below_right = None
@@ -91,6 +98,7 @@ if __name__ == "__main__":
         raise TypeError("Please provide a file")
     file = Path(sys.argv[1])
     if Path.is_file(file):
+        input = Path.read_text(file).splitlines()
         input = Path.read_text(file).splitlines()
         print(do_the_thing(input))
     else:
