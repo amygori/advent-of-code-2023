@@ -1,21 +1,25 @@
 import sys
 from pathlib import Path
-from pprint import pprint
 
 
-def do_the_thing(input):
-    total_points = 0
-    for card in input:
+def part_two(input):
+    count = len(input)
+    cards_to_count = input.copy()
+    while len(cards_to_count) > 0:
+        card = cards_to_count.pop()
         winning_nums = [int(num) for num in card.split(":")[1].split("|")[0].split()]
         nums_you_have = [int(num) for num in card.split(":")[1].split("|")[1].split()]
-        card_points = 0
-        for i, match in enumerate(common_numbers(winning_nums, nums_you_have)):
-            if i == 0:
-                card_points = 1
-            else:
-                card_points *= 2
-        total_points += card_points
-    return total_points
+        num_copies_won = len(common_numbers(winning_nums, nums_you_have))
+        count += num_copies_won
+        original_index = get_original_index(card)
+        for i in range(num_copies_won):
+            cards_to_count.append(input[original_index + 1 + i])
+    return count
+
+
+def get_original_index(card):
+    card_number = int([card for card in card.split(":")[0].split(" ") if card][1])
+    return card_number - 1
 
 
 def common_numbers(list1, list2):
@@ -31,6 +35,6 @@ if __name__ == "__main__":
     file = Path(sys.argv[1])
     if Path.is_file(file):
         input = Path.read_text(file).splitlines()
-        print(do_the_thing(input))
+        print(part_two(input))
     else:
         raise TypeError("This is not a file")
